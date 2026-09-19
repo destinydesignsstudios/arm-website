@@ -2114,7 +2114,7 @@ footer {
   var KEY_SESSION  = 'arm_website_session';
   var KEY_CART     = 'arm_website_cart';
   var KEY_CHATS    = 'arm_website_chats';
-  var KEY_PENDING  = 'arm_website_pending_orders';
+  var KEY_PENDING  = 'arm_website_pending_orders_v2';
   var KEY_THEME    = 'arm_website_theme';
 
   /* ============================================================
@@ -2984,7 +2984,10 @@ footer {
     var year = new Date().getFullYear();
     var maxSeq = 0;
     STATE.orders.forEach(function(o){
-      var m = /^ORD-(\d{4})-(\d+)$/.exec(o.id || '');
+      /* Regex intentionally has NO $ anchor — it must match both the old
+         format "ORD-2026-0003" and the new "ORD-2026-0003-A7K2" so the
+         sequence counter keeps advancing across mixed data. */
+      var m = /^ORD-(\d{4})-(\d+)/.exec(o.id || '');
       if (m) {
         var y = parseInt(m[1], 10);
         var s = parseInt(m[2], 10);
@@ -2994,7 +2997,14 @@ footer {
     var seq = maxSeq + 1;
     var padded = String(seq);
     while (padded.length < 4) padded = '0' + padded;
-    return 'ORD-' + year + '-' + padded;
+    /* 4-char base-36 random suffix makes every ID globally unique even
+       when two devices start from the same seeded sequence. */
+    var suffix = '';
+    var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    for (var i = 0; i < 4; i++) {
+      suffix += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    }
+    return 'ORD-' + year + '-' + padded + '-' + suffix;
   }
 
   async function placeOrder() {
